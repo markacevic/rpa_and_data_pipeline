@@ -1,4 +1,11 @@
 # -*- coding: utf-8 -*-
+"""Abstract base class and core logic for data processing.
+
+This module defines the `DataProcessor` abstract base class, which provides a
+common interface and shared functionality for processing product data from
+different markets. It includes methods for data standardization, price and
+unit calculations, and requires subclasses to implement market-specific logic.
+"""
 import pandas as pd
 from typing import List, Dict, Any, Optional
 import logging
@@ -9,11 +16,14 @@ import os
 import json
 
 class DataProcessor(ABC):
-    """Abstract base class for data processing operations.
+    """Abstract base class for all data processors.
 
-    This class provides a foundation for processing product data with common
-    functionality for price calculations, unit conversions, and data standardization.
-    It defines the interface that all concrete data processors must implement.
+    This class provides a shared foundation for processing raw product data.
+    It defines a standard schema (`FINAL_COLUMNS`), common helper methods for
+    parsing prices and quantities, and an abstract interface that concrete
+
+    subclasses must implement for market-specific logic like category and
+    store location extraction.
     """
 
     # Define the final, ordered columns for the output after processing
@@ -149,7 +159,6 @@ class DataProcessor(ABC):
 
         This method orchestrates the processing of an entire market data file by
         calling the market-specific `process_market_data` implementation and
-
         then saving the resulting DataFrame to a specified CSV file.
 
         Args:

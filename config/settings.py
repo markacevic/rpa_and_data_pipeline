@@ -44,25 +44,25 @@ MARKET_CONFIGS = {
     "vero": {
         "base_url": "https://pricelist.vero.com.mk/",
         "processor": "Vero",
-        "default_total_limit": 150,
+        "default_total_limit": 2,
         "default_per_page_limit": 1,
     },
     "zito": {
         "base_url": "https://zito.proverkanaceni.mk/index.php",
         "processor": "Standard",
-        "default_total_limit": 150,
+        "default_total_limit": 2,
         "default_per_page_limit": 1,
     },
     "tinex": {
         "base_url": "https://ceni.tinex.mk:442/index.php",
         "processor": "Standard",
-        "default_total_limit": 150,
+        "default_total_limit": 2,
         "default_per_page_limit": 1,
     },
     "stokomak": {
         "base_url": "https://stokomak.proverkanaceni.mk/",
         "processor": "Standard",
-        "default_total_limit": 150,
+        "default_total_limit": 2,
         "default_per_page_limit": 1,
     },
 } 

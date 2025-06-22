@@ -1,99 +1,108 @@
 # -*- coding: utf-8 -*-
-from .data_processor import DataProcessor
+"""Data processor for standard markets like Zito and Stokomak.
+
+This module defines a processor that handles the common data structure
+found across several markets. It relies on a generic JSON structure and
+implements the category and store location logic suitable for these sites.
+"""
+
 import pandas as pd
-import json
-from typing import Dict, Any, Optional
+from typing import Optional
 import logging
-import re
+import json
+import os
+
+from .data_processor import DataProcessor
+
 
 class StandardMarketDataProcessor(DataProcessor):
-    """
-    A base processor for markets that share a standard raw data format
-    (e.g., Zito, Tinex, Stokomak).
-    
-    You will need to update the KEY placeholders with the actual field names
-    from the raw data.
-    """
-    
-    # 
-    PRODUCT_NAME_KEY = 'назив_на_стока-производ'
-    CURRENT_PRICE_KEY = 'продажна_цена'
-    REGULAR_PRICE_KEY = 'редовна_цена'
-    DESCRIPTION_KEY = 'опис_на_стока'
-    PRICE_PER_UNIT_KEY = 'единечна_цена'
-    AVAILABILITY_KEY = 'достапност_во_продажен_објект'
-    STORE_NAME_KEY = 'market_name'
-    # --------------------------------------------------------------------------
+    """Processes data for markets with a standard JSON format.
 
+    This class is designed to work with the common data structure produced
+    by the `BaseMarketScraper`. It implements the abstract methods from
+    `DataProcessor` with logic tailored to this standard format. For these
+    markets, the category is taken directly from the 'description' field.
+    """
     def __init__(self):
-        self.logger = logging.getLogger(self.__class__.__name__)
-
-    def _get_category(self, description: str, product_name: str) -> Optional[str]:
-        """
-        For standard markets, we assume the category can be inferred from the product name.
-        This is a placeholder and may need more specific logic.
-        """
-        # can be extended with more keywords 
-        name_upper = product_name.upper()
-        if any(keyword in name_upper for keyword in ["ЈОГУРТ", "МЛЕКО", "СИРЕЊЕ", "КАШКАВАЛ", "ЗДЕНКА", "ПАВЛАКА", "КАЈМАК"]):
-            return "Млечни производи"
-        if any(keyword in name_upper for keyword in ["ЛЕБ", "ПЕЦИВО", "БАГЕТ", "КРОАСАН", "PIJALOK"]):
-            return "Леб и пецива"
-        if any(keyword in name_upper for keyword in ["ПИВО", "ВИНО", "СОК", "ВОДА", "ПИЈАЛОК", "ВИСКИ", "КОЊАК", "ВОДКА", "ЛИКЕР", "РАКИЈА","РУМ", "ЏИН"]):
-            return "Пијалоци"
-        
-        # Fallback to the description if it exists
-        return description if description else "Uncategorized"
-
-    def _create_store_location(self, store_name: str) -> str:
-        """
-        For standard markets, the store location is the identifier itself.
-        """
-        return store_name if store_name else "Unknown"
+        """Initializes the StandardMarketDataProcessor."""
+        self.logger = logging.getLogger(__name__)
+        self.logger.info("Standard Market Data Processor initialized.")
 
     def process_market_data(self, file_path: str) -> pd.DataFrame:
+        """Loads data from a JSON file and processes it into a DataFrame.
+
+        This method reads a list of product dictionaries from the specified
+        JSON file, processes each one into a standardized format using the
+        `create_product_data` method from the base class, and compiles
+        them into a single pandas DataFrame.
+
+        Args:
+            file_path: The path to the input JSON file.
+
+        Returns:
+            A pandas DataFrame containing the cleaned and standardized
+            product data, ready for validation and analysis. Returns an
+            empty DataFrame if the file is not found or is empty.
         """
-        Loads raw data using the standard key mappings, processes it, 
-        filters for available items, and returns a clean DataFrame.
-        """
-        self.logger.info(f"Processing standard market data from: {file_path}")
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 raw_data = json.load(f)
         except (FileNotFoundError, json.JSONDecodeError) as e:
-            self.logger.error(f"Could not read or parse file at {file_path}: {e}")
+            self.logger.error(f"Could not read or parse the data file at {file_path}: {e}")
             return pd.DataFrame()
 
-        processed_products = []
-        for product in raw_data:
-            # Check availability first
-            is_available = self._extract_availability(product.get(self.AVAILABILITY_KEY, ''))
-            if not is_available:
-                continue
-            
-            # Process the available product using the key mappings
-            clean_product_data = self.create_product_data(
-                product_name=product.get(self.PRODUCT_NAME_KEY),
-                current_price=product.get(self.CURRENT_PRICE_KEY),
-                regular_price=product.get(self.REGULAR_PRICE_KEY),
-                description=product.get(self.DESCRIPTION_KEY),
-                price_per_unit=product.get(self.PRICE_PER_UNIT_KEY),
-                availability=product.get(self.AVAILABILITY_KEY),
-                store_name=product.get(self.STORE_NAME_KEY)
+        if not raw_data:
+            self.logger.warning(f"No data found in {file_path}.")
+            return pd.DataFrame()
+
+        clean_data = []
+        for item in raw_data:
+            processed_item = self.create_product_data(
+                product_name=item.get('назив_на_стока-производ'),
+                current_price=item.get('продажна_цена'),
+                regular_price=item.get('редовна_цена'),
+                description=item.get('опис_на_стока'),
+                price_per_unit=item.get('единечна_цена'),
+                availability=item.get('достапност_во_продажен_објект'),
+                store_name=item.get('market_name')
             )
-            processed_products.append(clean_product_data)
+            clean_data.append(processed_item)
+
+        return pd.DataFrame(clean_data)
+
+    def _get_category(self, description: str, product_name: str) -> Optional[str]:
+        """Extracts the category from the product's description.
+
+        For the standard market format, the category information is expected
+        to be in the 'description' field. This method cleans and returns that
+        value. If the description is missing, it logs a warning and defaults
+        to "Uncategorized".
+
+        Args:
+            description: The raw description string, which is assumed to be
+                the category.
+            product_name: The name of the product (used for logging).
+
+        Returns:
+            The category name as a string, or "Uncategorized" if not found.
+        """
+        if description and isinstance(description, str) and description.strip():
+            return description.strip()
         
-        self.logger.info(f"Successfully processed {len(processed_products)} available products.")
-        
-        if not processed_products:
-            self.logger.warning("No available products found to process.")
-            return pd.DataFrame()
+        self.logger.debug(f"No category found for product '{product_name}'. Defaulting to Uncategorized.")
+        return "Uncategorized"
 
-        # Create DataFrame from the list of dictionaries
-        df = pd.DataFrame(processed_products)
+    def _create_store_location(self, store_name: str) -> str:
+        """Returns the store name directly as the location.
 
-        # Ensure the DataFrame has exactly the columns required, in the correct order
-        final_df = df.reindex(columns=self.FINAL_COLUMNS)
+        In the standard market format, the 'store_name' field already
+        represents the desired location (e.g., a specific branch). This
+        method simply returns it after stripping any whitespace.
 
-        self.logger.info(f"Final DataFrame has {len(final_df)} records.")
-        return final_df 
+        Args:
+            store_name: The name of the store/branch.
+
+        Returns:
+            The cleaned store name to be used as the location.
+        """
+        return store_name.strip() if store_name else "Unknown Location" 
