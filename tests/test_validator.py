@@ -6,8 +6,10 @@ It uses pytest fixtures to create sample DataFrames containing both valid
 and invalid records, and it verifies that the validator correctly
 identifies, filters, and reports on data quality issues.
 """
+
 import pandas as pd
 from src.validators.data_validator import DataValidator
+
 
 def test_validate_data():
     """Tests the functionality of the DataValidator.
@@ -19,37 +21,39 @@ def test_validate_data():
         each validated product.
     """
     market_name = "vero"
-    raw_data = pd.DataFrame([
-        {
-            "product_name": "Milk 1L",
-            "current_price": 50.0,
-            "price_per_unit": 50.0,
-            "unit": "l",
-            "category": "Dairy",
-            "discount_percentage": 0.0,
-            "store_location": "Vero Market Centar",
-        },
-        {
-            "product_name": "",
-            "current_price": None,
-            "price_per_unit": None,
-            "unit": "",
-            "category": "",
-            "discount_percentage": None,
-            "store_location": "",
-            "market_name": market_name
-        },
-        {
-            "product_name": "Cheese 500g",
-            "current_price": -10.0,
-            "price_per_unit": -20.0,
-            "unit": "kg",
-            "category": "Dairy",
-            "discount_percentage": 0.0,
-            "store_location": "Vero Market Centar",
-            "market_name": market_name
-        }
-    ])
+    raw_data = pd.DataFrame(
+        [
+            {
+                "product_name": "Milk 1L",
+                "current_price": 50.0,
+                "price_per_unit": 50.0,
+                "unit": "l",
+                "category": "Dairy",
+                "discount_percentage": 0.0,
+                "store_location": "Vero Market Centar",
+            },
+            {
+                "product_name": "",
+                "current_price": None,
+                "price_per_unit": None,
+                "unit": "",
+                "category": "",
+                "discount_percentage": None,
+                "store_location": "",
+                "market_name": market_name,
+            },
+            {
+                "product_name": "Cheese 500g",
+                "current_price": -10.0,
+                "price_per_unit": -20.0,
+                "unit": "kg",
+                "category": "Dairy",
+                "discount_percentage": 0.0,
+                "store_location": "Vero Market Centar",
+                "market_name": market_name,
+            },
+        ]
+    )
 
     validator = DataValidator()
     validated = validator.validate(raw_data, market_name)

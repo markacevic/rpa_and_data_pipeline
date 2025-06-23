@@ -14,6 +14,7 @@ Available Scrapers:
 - ZitoScraper
 - StokomakScraper
 """
+
 # Import the scrapers
 from .vero_scraper import VeroScraper
 from .tinex_scraper import TinexScraper
@@ -23,9 +24,9 @@ from .factory import get_market_scraper
 
 # Expose the scrapers and the factory function
 __all__ = [
-    'VeroScraper',
-    'TinexScraper',
-    'ZitoScraper',
-    'StokomakScraper',
-    'get_market_scraper',
-] 
+    "VeroScraper",
+    "TinexScraper",
+    "ZitoScraper",
+    "StokomakScraper",
+    "get_market_scraper",
+]

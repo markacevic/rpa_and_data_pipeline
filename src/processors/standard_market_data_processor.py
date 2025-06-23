@@ -23,6 +23,7 @@ class StandardMarketDataProcessor(DataProcessor):
     `DataProcessor` with logic tailored to this standard format. For these
     markets, the category is taken directly from the 'description' field.
     """
+
     def __init__(self):
         """Initializes the StandardMarketDataProcessor."""
         self.logger = logging.getLogger(__name__)
@@ -45,10 +46,12 @@ class StandardMarketDataProcessor(DataProcessor):
             empty DataFrame if the file is not found or is empty.
         """
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 raw_data = json.load(f)
         except (FileNotFoundError, json.JSONDecodeError) as e:
-            self.logger.error(f"Could not read or parse the data file at {file_path}: {e}")
+            self.logger.error(
+                f"Could not read or parse the data file at {file_path}: {e}"
+            )
             return pd.DataFrame()
 
         if not raw_data:
@@ -58,13 +61,13 @@ class StandardMarketDataProcessor(DataProcessor):
         clean_data = []
         for item in raw_data:
             processed_item = self.create_product_data(
-                product_name=item.get('назив_на_стока-производ'),
-                current_price=item.get('продажна_цена'),
-                regular_price=item.get('редовна_цена'),
-                description=item.get('опис_на_стока'),
-                price_per_unit=item.get('единечна_цена'),
-                availability=item.get('достапност_во_продажен_објект'),
-                store_name=item.get('market_name')
+                product_name=item.get("назив_на_стока-производ"),
+                current_price=item.get("продажна_цена"),
+                regular_price=item.get("редовна_цена"),
+                description=item.get("опис_на_стока"),
+                price_per_unit=item.get("единечна_цена"),
+                availability=item.get("достапност_во_продажен_објект"),
+                store_name=item.get("market_name"),
             )
             clean_data.append(processed_item)
 
@@ -88,8 +91,10 @@ class StandardMarketDataProcessor(DataProcessor):
         """
         if description and isinstance(description, str) and description.strip():
             return description.strip()
-        
-        self.logger.debug(f"No category found for product '{product_name}'. Defaulting to Uncategorized.")
+
+        self.logger.debug(
+            f"No category found for product '{product_name}'. Defaulting to Uncategorized."
+        )
         return "Uncategorized"
 
     def _create_store_location(self, store_name: str) -> str:
@@ -105,4 +110,4 @@ class StandardMarketDataProcessor(DataProcessor):
         Returns:
             The cleaned store name to be used as the location.
         """
-        return store_name.strip() if store_name else "Unknown Location" 
+        return store_name.strip() if store_name else "Unknown Location"

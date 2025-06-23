@@ -4,7 +4,7 @@ import os
 import json
 import logging
 from typing import List, Dict, Any, Optional
-from abc import ABC, abstractmethod
+from abc import ABC
 import re
 
 from selenium import webdriver
@@ -36,14 +36,15 @@ class BaseMarketScraper(ABC):
     For markets with unique website structures (e.g., Vero), subclasses should
     override the `scrape` method to implement custom logic.
     """
+
     def __init__(
         self,
         base_url: str,
         market_name: str,
-        browser: str = 'chrome',
+        browser: str = "chrome",
         headless: bool = True,
-        per_page_limit: Optional[int] = None, 
-        total_limit: Optional[int] = None
+        per_page_limit: Optional[int] = None,
+        total_limit: Optional[int] = None,
     ):
         """Initializes the BaseMarketScraper.
 
@@ -66,7 +67,9 @@ class BaseMarketScraper(ABC):
         Raises:
             ValueError: If an unsupported browser is specified.
         """
-        self.base_url = base_url.split('?')[0] # Get the clean base URL without any params
+        self.base_url = base_url.split("?")[
+            0
+        ]  # Get the clean base URL without any params
         self.market_name = market_name
         self.browser = browser.lower()
         self.headless = headless
@@ -74,17 +77,17 @@ class BaseMarketScraper(ABC):
         self.total_limit = total_limit
         self.logger = logging.getLogger(f"{self.__class__.__name__}({market_name})")
         self.total_products_scraped = 0
-        
+
         # This will store details like {'id': '2', 'name': '2 Трговски - Велес'}
         self.market_details: List[Dict[str, str]] = []
 
         self.logger.info(f"Initializing WebDriver for browser: {self.browser}")
         options = None
-        if self.browser == 'chrome':
+        if self.browser == "chrome":
             options = ChromeOptions()
-        elif self.browser == 'edge':
+        elif self.browser == "edge":
             options = EdgeOptions()
-        elif self.browser == 'firefox':
+        elif self.browser == "firefox":
             options = FirefoxOptions()
 
         if options is not None:
@@ -95,13 +98,15 @@ class BaseMarketScraper(ABC):
             options.add_argument("--window-size=1920,1080")
             options.add_argument("--no-sandbox")
             options.add_argument("--disable-dev-shm-usage")
-            
+
             self.driver = (
                 webdriver.Chrome(options=options)
-                if self.browser == 'chrome'
-                else webdriver.Edge(options=options)
-                if self.browser == 'edge'
-                else webdriver.Firefox(options=options)
+                if self.browser == "chrome"
+                else (
+                    webdriver.Edge(options=options)
+                    if self.browser == "edge"
+                    else webdriver.Firefox(options=options)
+                )
             )
         else:
             raise ValueError(f"Unsupported browser: {self.browser}")
@@ -148,13 +153,15 @@ class BaseMarketScraper(ABC):
                 EC.presence_of_element_located((By.CSS_SELECTOR, "select[name='org']"))
             )
             market_dropdown = Select(dropdown_element)
-            
-            options = [opt for opt in market_dropdown.options if opt.get_attribute('value')]
-            
+
+            options = [
+                opt for opt in market_dropdown.options if opt.get_attribute("value")
+            ]
+
             for opt in options:
-                market_id = opt.get_attribute('value')
+                market_id = opt.get_attribute("value")
                 market_name = opt.text.strip()
-                markets.append({'id': market_id, 'name': market_name})
+                markets.append({"id": market_id, "name": market_name})
 
             self.logger.info(f"Successfully found {len(markets)} markets to scrape.")
         except Exception as e:
@@ -193,17 +200,24 @@ class BaseMarketScraper(ABC):
         for market in self.market_details:
             if stop_scraping_total:
                 break
-                
-            market_id = market['id']
-            market_name_text = market['name']
-            self.logger.info(f"--- Starting scrape for Market: {market_name_text} (ID: {market_id}) ---")
-            
+
+            market_id = market["id"]
+            market_name_text = market["name"]
+            self.logger.info(
+                f"--- Starting scrape for Market: {market_name_text} (ID: {market_id}) ---"
+            )
+
             page_num = 1
-            
+
             while True:
                 # Check 1: TOTAL limit. If met, stop fetching new pages.
-                if self.total_limit is not None and self.total_products_scraped >= self.total_limit:
-                    self.logger.info(f"Total product limit of {self.total_limit} reached. Stopping all scraping.")
+                if (
+                    self.total_limit is not None
+                    and self.total_products_scraped >= self.total_limit
+                ):
+                    self.logger.info(
+                        f"Total product limit of {self.total_limit} reached. Stopping all scraping."
+                    )
                     stop_scraping_total = True
                     break
 
@@ -211,43 +225,55 @@ class BaseMarketScraper(ABC):
                 self.logger.info(f"Scraping Page {page_num} from URL: {page_url}")
 
                 self.driver.get(page_url)
-                
+
                 # Check for the end-of-market message
                 if "Нема артикли по зададените критериуми" in self.driver.page_source:
-                    self.logger.info(f"End of products for market '{market_name_text}'. Moving to the next market.")
+                    self.logger.info(
+                        f"End of products for market '{market_name_text}'. Moving to the next market."
+                    )
                     break
 
                 try:
                     WebDriverWait(self.driver, 10).until(
-                        EC.visibility_of_element_located((By.CSS_SELECTOR, 'div.table-responsive .table'))
+                        EC.visibility_of_element_located(
+                            (By.CSS_SELECTOR, "div.table-responsive .table")
+                        )
                     )
                 except TimeoutException:
-                    self.logger.warning(f"Table not found on {page_url}. Assuming end of pages.")
+                    self.logger.warning(
+                        f"Table not found on {page_url}. Assuming end of pages."
+                    )
                     break
-                
+
                 # Call the extraction method, passing the per-page limit down to it.
                 page_products = self._extract_products_from_page(
-                    market_id,
-                    market_name_text,
-                    self.per_page_limit
+                    market_id, market_name_text, self.per_page_limit
                 )
-                
+
                 # Add the collected products (if any) to our main list
                 all_products.extend(page_products)
-                
+
                 # If the extraction returned nothing, it might be because the total limit was hit
                 # inside of it. In any case, there's no need to continue with this market.
-                if not page_products and self.total_limit is not None and self.total_products_scraped >= self.total_limit:
+                if (
+                    not page_products
+                    and self.total_limit is not None
+                    and self.total_products_scraped >= self.total_limit
+                ):
                     # This ensures we break the page loop if the limit was hit mid-page
-                    self.logger.info("Total limit reached during page extraction. Stopping market scrape.")
+                    self.logger.info(
+                        "Total limit reached during page extraction. Stopping market scrape."
+                    )
                     stop_scraping_total = True
                     break
 
                 # If the page products list is empty, it means we've reached the end of the market.
-                if not page_products: # Ова е исто како 'if len(page_products) == 0:'
-                    self.logger.info("Страницата не врати продукти, се претпоставува крај.")
+                if not page_products:  # Ова е исто како 'if len(page_products) == 0:'
+                    self.logger.info(
+                        "Страницата не врати продукти, се претпоставува крај."
+                    )
                     break
-                
+
                 # Increment page number for the next loop
                 page_num += 1
                 random_delay()
@@ -256,8 +282,8 @@ class BaseMarketScraper(ABC):
         if all_products:
             # A final trim is good practice to strictly enforce the total_limit
             if self.total_limit is not None and len(all_products) > self.total_limit:
-                all_products = all_products[:self.total_limit]
-                
+                all_products = all_products[: self.total_limit]
+
             output_file = self._save_data(all_products)
             output_files.append(output_file)
             self.logger.info(
@@ -268,7 +294,9 @@ class BaseMarketScraper(ABC):
 
         return output_files
 
-    def _extract_products_from_page(self, market_id: str, market_name: str, per_page_limit: Optional[int]) -> List[Dict[str, Any]]:
+    def _extract_products_from_page(
+        self, market_id: str, market_name: str, per_page_limit: Optional[int]
+    ) -> List[Dict[str, Any]]:
         """Extracts all product data from the currently loaded page.
 
         This method iterates through each row of the product table on the current
@@ -288,68 +316,88 @@ class BaseMarketScraper(ABC):
             or if the total scraping limit has already been reached.
         """
         products: List[Dict[str, Any]] = []
-        
+
         # Return immediately if the total limit is already met
-        if self.total_limit is not None and self.total_products_scraped >= self.total_limit:
+        if (
+            self.total_limit is not None
+            and self.total_products_scraped >= self.total_limit
+        ):
             return []
 
         try:
             # Check if the page contains a message indicating no data is available
-            no_data_elements = self.driver.find_elements(By.XPATH, "//td[contains(text(), 'Нема податоци за прикажување')]")
-            
-            if no_data_elements:
-                self.logger.info(f"No data found for market '{market_name}'. Stopping collection.")
-                return []  
+            no_data_elements = self.driver.find_elements(
+                By.XPATH, "//td[contains(text(), 'Нема податоци за прикажување')]"
+            )
 
-            rows = self.driver.find_elements(By.CSS_SELECTOR, 'div.table-responsive .table tbody tr')
+            if no_data_elements:
+                self.logger.info(
+                    f"No data found for market '{market_name}'. Stopping collection."
+                )
+                return []
+
+            rows = self.driver.find_elements(
+                By.CSS_SELECTOR, "div.table-responsive .table tbody tr"
+            )
             if not rows:
                 return []
 
-            table = self.driver.find_element(By.CSS_SELECTOR, 'div.table-responsive .table')
+            table = self.driver.find_element(
+                By.CSS_SELECTOR, "div.table-responsive .table"
+            )
             headers = [
-                th.text.strip().lower().replace(' ', '_').replace('\n', '_')
-                for th in table.find_elements(By.CSS_SELECTOR, 'thead th')
+                th.text.strip().lower().replace(" ", "_").replace("\n", "_")
+                for th in table.find_elements(By.CSS_SELECTOR, "thead th")
             ]
 
             for row in rows:
                 # Check 1: The ABSOLUTE total limit. If this is hit, we are done completely.
-                if self.total_limit is not None and self.total_products_scraped >= self.total_limit:
-                    self.logger.info(f"Total limit ({self.total_limit}) reached. Stopping all extractions.")
+                if (
+                    self.total_limit is not None
+                    and self.total_products_scraped >= self.total_limit
+                ):
+                    self.logger.info(
+                        f"Total limit ({self.total_limit}) reached. Stopping all extractions."
+                    )
                     return products
 
                 # Check 2: The limit FOR THIS PAGE ONLY.
                 # If we have collected enough products from this page, break the loop and move to the next page.
                 if per_page_limit is not None and len(products) >= per_page_limit:
-                    self.logger.info(f"Per-page limit of {per_page_limit} reached for this page. Moving on.")
-                    break # This breaks the 'for row in rows' loop
+                    self.logger.info(
+                        f"Per-page limit of {per_page_limit} reached for this page. Moving on."
+                    )
+                    break  # This breaks the 'for row in rows' loop
 
                 # --- If no limits are hit, process the row ---
-                cells = row.find_elements(By.TAG_NAME, 'td')
+                cells = row.find_elements(By.TAG_NAME, "td")
 
-                # check if 
+                # check if
                 item = {headers[i]: cells[i].text.strip() for i in range(len(cells))}
                 # add log for item
                 self.logger.debug(f"Raw product data: {item}")
 
                 # --- Raw Validation Step ---
                 if not self._is_raw_product_valid(item):
-                    continue # Skip this product if it's invalid
+                    continue  # Skip this product if it's invalid
                 # --- End Raw Validation ---
 
-                item['market_id'] = market_id
-                item['market_name'] = market_name
-                item['scraped_at'] = time.strftime("%Y-%m-%d %H:%M:%S")
+                item["market_id"] = market_id
+                item["market_name"] = market_name
+                item["scraped_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
                 products.append(item)
                 # Increment the master counter only after successfully adding a product
-                self.total_products_scraped += 1 
+                self.total_products_scraped += 1
 
         except Exception as e:
             self._handle_error(e, f"extracting_products_from_market_{market_id}")
-            
+
         # add log for total products scraped for this market
-        self.logger.info(f"Total products scraped for market {market_name}: {self.total_products_scraped}")
+        self.logger.info(
+            f"Total products scraped for market {market_name}: {self.total_products_scraped}"
+        )
         return products
-    
+
     def _save_data(self, data: List[Dict[str, Any]]) -> str:
         """Saves scraped data to a JSON file.
 
@@ -362,7 +410,7 @@ class BaseMarketScraper(ABC):
         """
         filename = f"outputs/{self.market_name.lower()}_raw_data.json"
         os.makedirs(os.path.dirname(filename), exist_ok=True)
-        with open(filename, 'w', encoding='utf-8') as f:
+        with open(filename, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=4)
         self.logger.info(f"Successfully saved {len(data)} items to {filename}")
         return filename
@@ -383,7 +431,7 @@ class BaseMarketScraper(ABC):
         are freed. It is automatically called when exiting a `with` block or when
         the scraper instance is explicitly closed.
         """
-        if hasattr(self, 'driver') and self.driver:
+        if hasattr(self, "driver") and self.driver:
             self.driver.quit()
             self.logger.info("Browser closed.")
 
@@ -401,17 +449,19 @@ class BaseMarketScraper(ABC):
         Returns:
             bool: True if the product data is valid, False otherwise.
         """
-        name = product.get('назив_на_стока-производ', '').strip()
-        current_price_str = product.get('продажна_цена', '').strip()
-        
+        name = product.get("назив_на_стока-производ", "").strip()
+        current_price_str = product.get("продажна_цена", "").strip()
+
         # 1. Product name must not be empty
         if not name:
-            self.logger.warning(f"Skipping product with empty name.")
+            self.logger.warning("Skipping product with empty name.")
             return False
 
         # 2. Product name must contain at least one letter or number
-        if not re.search(r'[\w]', name, re.UNICODE):
-            self.logger.warning(f"Skipping product with name containing only special characters: '{name}'")
+        if not re.search(r"[\w]", name, re.UNICODE):
+            self.logger.warning(
+                f"Skipping product with name containing only special characters: '{name}'"
+            )
             return False
 
         # 3. Current price must not be empty
@@ -422,14 +472,18 @@ class BaseMarketScraper(ABC):
         # 4. Prices must be positive numbers
         try:
             # A simple helper to clean the price string for validation
-            price_clean = re.sub(r'[^\d,.]', '', current_price_str).replace(',', '.')
+            price_clean = re.sub(r"[^\d,.]", "", current_price_str).replace(",", ".")
             price_val = float(price_clean)
             if price_val <= 0:
-                self.logger.warning(f"Skipping product '{name}' with non-positive price: {price_val}")
+                self.logger.warning(
+                    f"Skipping product '{name}' with non-positive price: {price_val}"
+                )
                 return False
         except (ValueError, TypeError):
-            self.logger.warning(f"Skipping product '{name}' with unparseable price: '{current_price_str}'")
+            self.logger.warning(
+                f"Skipping product '{name}' with unparseable price: '{current_price_str}'"
+            )
             return False
-            
+
         # All checks passed
         return True

@@ -8,11 +8,12 @@ from .stokomak_data_processor import StokomakDataProcessor
 
 # Mapping of market names to their corresponding data processor classes
 PROCESSOR_MAP: Dict[str, Type[DataProcessor]] = {
-    'vero': VeroDataProcessor,
-    'zito': ZitoDataProcessor,
-    'tinex': TinexDataProcessor,
-    'stokomak': StokomakDataProcessor,
+    "vero": VeroDataProcessor,
+    "zito": ZitoDataProcessor,
+    "tinex": TinexDataProcessor,
+    "stokomak": StokomakDataProcessor,
 }
+
 
 def get_data_processor(market_name: str) -> DataProcessor:
     """
@@ -46,4 +47,6 @@ def get_data_processor(market_name: str) -> DataProcessor:
     if processor_class:
         return processor_class()
     else:
-        raise ValueError(f"Unsupported market: '{market_name}'. No data processor found.") 
+        raise ValueError(
+            f"Unsupported market: '{market_name}'. No data processor found."
+        )

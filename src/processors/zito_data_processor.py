@@ -7,11 +7,13 @@ standard market data processing logic.
 
 from .standard_market_data_processor import StandardMarketDataProcessor
 
+
 class ZitoDataProcessor(StandardMarketDataProcessor):
     """Concrete data processor for Zito Market.
-    
-    This class inherits all necessary processing logic from the 
+
+    This class inherits all necessary processing logic from the
     StandardMarketDataProcessor, as the raw data format from the Zito scraper
     matches the standard keys.
     """
+
     pass

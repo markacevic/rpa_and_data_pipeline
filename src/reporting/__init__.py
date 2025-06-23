@@ -1,1 +1,1 @@
-"""Initializes the reporting package.""" 
+"""Initializes the reporting package."""

@@ -18,6 +18,7 @@ rpa/
 ├── README.md              # This file
 ├── requirements.txt       # Python package dependencies
 ├── run_dag_locally.py     # Script to run a DAG task without Airflow
+├── compare_reports.py     # Script to compare analytics reports across markets
 ├── src/                   # Main source code
 │   ├── __init__.py
 │   ├── processors/        # Data processing and transformation modules
@@ -130,9 +131,27 @@ python run_dag_locally.py vero --limit 50
 *   `--limit <number>`: Stop scraping after a total of `<number>` products.
 *   `--per-page <number>`: Set the number of items to show per page on sites that support it.
 
+### 4. Comparing Market Analytics
+
+After running the pipeline for multiple markets and generating individual summary reports, you can use the `compare_reports.py` script to generate a single, unified report that compares all markets.
+
+**Usage:**
+
+This script requires that you have already generated summary analytics reports in the `outputs/reports/` directory for the markets you wish to compare.
+
+```bash
+python compare_reports.py
+```
+
+This will:
+1.  Load all available analytics reports.
+2.  Print a comparison table and a series of generated insights to the console.
+3.  Save the same report to a file named `market_comparison_report.txt` in the `outputs/` directory.
+
 ## Testing
 
 Run the full test suite using pytest. The `-m` flag is recommended to ensure Python pathing works correctly.
+
 ```bash
 python -m pytest tests/
 ```

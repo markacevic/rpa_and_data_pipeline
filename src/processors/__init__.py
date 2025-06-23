@@ -22,5 +22,5 @@ __all__ = [
     "StandardMarketDataProcessor",
     "TinexDataProcessor",
     "StokomakDataProcessor",
-    "get_data_processor", 
-] 
+    "get_data_processor",
+]

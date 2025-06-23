@@ -11,7 +11,7 @@ from .processors import get_data_processor
 from .validators import DataValidator
 
 __all__ = [
-    'get_scraper',
+    'get_market_scraper',
     'get_data_processor',
     'DataValidator'
 ]

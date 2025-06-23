@@ -5,7 +5,15 @@ from .stokomak_scraper import StokomakScraper
 from typing import Optional
 from .base_market_scraper import BaseMarketScraper
 
-def get_market_scraper(market_name: str, base_url: str, browser: str, headless: bool, per_page_limit: Optional[int] = None, total_limit: Optional[int] = None) -> BaseMarketScraper:
+
+def get_market_scraper(
+    market_name: str,
+    base_url: str,
+    browser: str,
+    headless: bool,
+    per_page_limit: Optional[int] = None,
+    total_limit: Optional[int] = None,
+) -> BaseMarketScraper:
     """
     Factory function to get a scraper instance for a given market.
 
@@ -24,7 +32,7 @@ def get_market_scraper(market_name: str, base_url: str, browser: str, headless: 
         "vero": VeroScraper,
         "tinex": TinexScraper,
         "zito": ZitoScraper,
-        "stokomak": StokomakScraper
+        "stokomak": StokomakScraper,
     }
 
     scraper_class = scrapers.get(market_name.lower())
@@ -35,7 +43,7 @@ def get_market_scraper(market_name: str, base_url: str, browser: str, headless: 
             browser=browser,
             headless=headless,
             per_page_limit=per_page_limit,
-            total_limit=total_limit
+            total_limit=total_limit,
         )
     else:
-        raise ValueError(f"Scraper for market '{market_name}' not found.") 
+        raise ValueError(f"Scraper for market '{market_name}' not found.")
