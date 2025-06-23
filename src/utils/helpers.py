@@ -112,7 +112,7 @@ def handle_selenium_error(
         screenshots_dir = "error_screenshots"
         os.makedirs(screenshots_dir, exist_ok=True)
         timestamp = time.strftime("%Y%m%d-%H%M%S")
-        safe_context = context.replace("/", "_").replace(":", "")
+        safe_context = context.replace("/", "_").replace(":", "") # Replace slashes and colons with underscores
         screenshot_file = os.path.join(
             screenshots_dir, f"{safe_context}_{timestamp}.png"
         )

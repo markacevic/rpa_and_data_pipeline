@@ -56,6 +56,7 @@ class VeroScraper(BaseMarketScraper):
         """
         self.logger.info("Starting Vero scrape process.")
 
+        # 1. --- Get market URLs ---
         market_urls = self._get_market_urls()
         if not market_urls:
             self.logger.error("No market URLs found. Aborting scrape.")
@@ -66,11 +67,9 @@ class VeroScraper(BaseMarketScraper):
             if self.total_limit and self.total_products_scraped >= self.total_limit:
                 self.logger.info("Total product limit reached. Stopping scrape.")
                 break
-
+            # 2. --- Scrape products from the market's page ---
             products_from_url = self._scrape_products_from_url(url)
             all_market_products.extend(products_from_url)
-            # Update the total count after each market URL is scraped
-            # self.total_products_scraped = len(all_market_products) # HERE
 
         if not all_market_products:
             self.logger.warning("Scraping complete, but no products were found.")
@@ -234,10 +233,12 @@ class VeroScraper(BaseMarketScraper):
 
             self.logger.info(f"Scraping page: {current_url}")
 
-            success = self._navigate_to_page(current_url)
+            # 3. --- Navigate to the page ---
+            success = self._navigate_to_page(current_url) 
             if not success:
                 break
 
+            # 4. --- Extract products from the market's page ---
             page_products = self._extract_products_from_page(market_code)
 
             if not page_products:
@@ -247,8 +248,6 @@ class VeroScraper(BaseMarketScraper):
                 break
 
             all_products.extend(page_products)
-            # Update the total count after extending
-            # self.total_products_scraped = len(all_products) # HERE
 
             page_num += 1
             current_url = re.sub(r"_\d+\.html$", f"_{page_num}.html", current_url)
@@ -271,7 +270,7 @@ class VeroScraper(BaseMarketScraper):
         """
         for attempt in range(retries):
             try:
-                self.driver.get(url)
+                self.driver.get(url) # Navigate to the page using Selenium WebDriver's GET mechanism!
                 WebDriverWait(self.driver, 10).until(
                     EC.presence_of_element_located(
                         (By.CSS_SELECTOR, 'table[style*="font-size: 13"]')

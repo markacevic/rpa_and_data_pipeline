@@ -77,7 +77,7 @@ class BaseMarketScraper(ABC):
         self.total_limit = total_limit
         self.logger = logging.getLogger(f"{self.__class__.__name__}({market_name})")
         self.total_products_scraped = 0
-
+        
         # This will store details like {'id': '2', 'name': '2 Трговски - Велес'}
         self.market_details: List[Dict[str, str]] = []
 
@@ -99,6 +99,8 @@ class BaseMarketScraper(ABC):
             options.add_argument("--no-sandbox")
             options.add_argument("--disable-dev-shm-usage")
 
+            # Initialize the appropriate WebDriver based on the selected browser
+            # This uses a nested ternary operator to select the correct driver class
             self.driver = (
                 webdriver.Chrome(options=options)
                 if self.browser == "chrome"
@@ -151,14 +153,14 @@ class BaseMarketScraper(ABC):
         try:
             dropdown_element = WebDriverWait(self.driver, 20).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "select[name='org']"))
-            )
-            market_dropdown = Select(dropdown_element)
+            ) # Wait for the dropdown element to be present in the DOM (Document Object Model)
+            market_dropdown = Select(dropdown_element) # Create a S elect object from the dropdown element
 
             options = [
                 opt for opt in market_dropdown.options if opt.get_attribute("value")
-            ]
+            ] # Filter the options to only include those with a value attribute
 
-            for opt in options:
+            for opt in options: # Iterate through the options and extract the id and name
                 market_id = opt.get_attribute("value")
                 market_name = opt.text.strip()
                 markets.append({"id": market_id, "name": market_name})
@@ -189,6 +191,7 @@ class BaseMarketScraper(ABC):
         all_products: List[Dict[str, Any]] = []
         output_files: List[str] = []
 
+        # 1. --- Get market details ---
         self.market_details = self._get_market_details()
         if not self.market_details:
             self.logger.error("Could not retrieve market details. Stopping scrape.")
@@ -197,6 +200,7 @@ class BaseMarketScraper(ABC):
         # A flag to break out of the outer loop once the total limit is met
         stop_scraping_total = False
 
+        # 2. --- Iterate through each market ---
         for market in self.market_details:
             if stop_scraping_total:
                 break
@@ -209,6 +213,7 @@ class BaseMarketScraper(ABC):
 
             page_num = 1
 
+            # 3. --- Iterate through each page ---
             while True:
                 # Check 1: TOTAL limit. If met, stop fetching new pages.
                 if (
@@ -224,7 +229,7 @@ class BaseMarketScraper(ABC):
                 page_url = f"{self.base_url}?org={market_id}&search=&perPage=20&page={page_num}"
                 self.logger.info(f"Scraping Page {page_num} from URL: {page_url}")
 
-                self.driver.get(page_url)
+                self.driver.get(page_url)  # Navigate to the page using Selenium WebDriver's GET mechanism!
 
                 # Check for the end-of-market message
                 if "Нема артикли по зададените критериуми" in self.driver.page_source:
@@ -245,7 +250,7 @@ class BaseMarketScraper(ABC):
                     )
                     break
 
-                # Call the extraction method, passing the per-page limit down to it.
+                # 4. --- Extract products from the market's page ---
                 page_products = self._extract_products_from_page(
                     market_id, market_name_text, self.per_page_limit
                 )
@@ -273,25 +278,25 @@ class BaseMarketScraper(ABC):
                         "Страницата не врати продукти, се претпоставува крај."
                     )
                     break
-
+                
                 # Increment page number for the next loop
                 page_num += 1
                 random_delay()
 
         # --- SAVING DATA AT THE END ---
-        if all_products:
+            if all_products:
             # A final trim is good practice to strictly enforce the total_limit
-            if self.total_limit is not None and len(all_products) > self.total_limit:
+                if self.total_limit is not None and len(all_products) > self.total_limit:
                 all_products = all_products[: self.total_limit]
 
-            output_file = self._save_data(all_products)
-            output_files.append(output_file)
+                output_file = self._save_data(all_products)
+                output_files.append(output_file)
             self.logger.info(
                 f"Scrape successful. Saved {len(all_products)} products to {output_file}."
             )
-        else:
-            self.logger.warning("Scrape completed, but no products were found.")
-
+            else:
+                self.logger.warning("Scrape completed, but no products were found.")
+        
         return output_files
 
     def _extract_products_from_page(
@@ -422,6 +427,8 @@ class BaseMarketScraper(ABC):
             e (Exception): The exception that occurred.
             context (str): The context in which the error occurred.
         """
+        # This is a helper function that handles Selenium errors
+        #  saving a screenshot of the current browser state for debugging purposes.
         handle_selenium_error(self.driver, self.logger, e, context)
 
     def close(self):
@@ -433,7 +440,7 @@ class BaseMarketScraper(ABC):
         """
         if hasattr(self, "driver") and self.driver:
             self.driver.quit()
-            self.logger.info("Browser closed.")
+            self.logger.info("Browser closed.") 
 
     def _is_raw_product_valid(self, product: Dict[str, Any]) -> bool:
         """Performs basic validation on the raw scraped product data.
