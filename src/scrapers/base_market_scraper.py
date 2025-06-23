@@ -284,18 +284,18 @@ class BaseMarketScraper(ABC):
                 random_delay()
 
         # --- SAVING DATA AT THE END ---
-            if all_products:
-            # A final trim is good practice to strictly enforce the total_limit
-                if self.total_limit is not None and len(all_products) > self.total_limit:
+        if all_products:
+        # A final trim is good practice to strictly enforce the total_limit
+            if self.total_limit is not None and len(all_products) > self.total_limit:
                 all_products = all_products[: self.total_limit]
 
-                output_file = self._save_data(all_products)
-                output_files.append(output_file)
+            output_file = self._save_data(all_products)
+            output_files.append(output_file)
             self.logger.info(
-                f"Scrape successful. Saved {len(all_products)} products to {output_file}."
-            )
-            else:
-                self.logger.warning("Scrape completed, but no products were found.")
+            f"Scrape successful. Saved {len(all_products)} products to {output_file}."
+        )
+        else:
+            self.logger.warning("Scrape completed, but no products were found.")
         
         return output_files
 
