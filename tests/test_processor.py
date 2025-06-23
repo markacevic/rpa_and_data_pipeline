@@ -1,10 +1,28 @@
+"""
+Tests for the data processing module.
+
+This module contains a suite of tests for the `VeroDataProcessor` class.
+It uses pytest fixtures to create sample data files and verifies that the
+processor correctly processes the data into a structured format.
+"""
 import pandas as pd
 import pytest
 from src.processors.vero_data_processor import VeroDataProcessor
 
 @pytest.fixture
 def raw_data_file(tmp_path):
-    """Creates a temporary raw data JSON file for testing."""
+    """Creates a temporary raw data JSON file for testing.
+
+    This pytest fixture generates a temporary JSON file containing a list of
+    raw product data. This file is used as input for the data processor tests.
+
+    Args:
+        tmp_path: The pytest `tmp_path` fixture, which provides a temporary
+            directory unique to the test invocation.
+
+    Returns:
+        pathlib.Path: The path to the created temporary JSON file.
+    """
     raw_data = [
        {
         "назив_на_стока": "ЦЕРАЛИИ ТРИКС 300ГР",
@@ -57,6 +75,20 @@ def raw_data_file(tmp_path):
     return fpath
 
 def test_process_market_data(raw_data_file):
+    """Tests the functionality of the VeroDataProcessor.
+
+    This test checks the following aspects of the `process_market_data` method:
+    1.  That the output is a pandas DataFrame.
+    2.  That the number of processed records is correct.
+    3.  The accuracy of key data points (name, price, category, discount) for
+        each processed product.
+    4.  That the final DataFrame schema (column names and data types) matches
+        the expected structure.
+
+    Args:
+        raw_data_file (pathlib.Path): The path to the temporary raw data file,
+            provided by the `raw_data_file` fixture.
+    """
     processor = VeroDataProcessor()
     df = processor.process_market_data(raw_data_file)
 

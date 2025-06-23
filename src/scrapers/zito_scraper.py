@@ -7,7 +7,29 @@ class ZitoScraper(BaseMarketScraper):
     A scraper for the Zito supermarket website.
     This class inherits all its scraping logic from the BaseMarketScraper.
     """
-    def __init__(self, base_url: str, browser: str = 'chrome', per_page_limit: Optional[int] = None, total_limit: Optional[int] = None, headless: bool = True):
+    def __init__(
+        self,
+        base_url: str,
+        browser: str = 'chrome',
+        per_page_limit: Optional[int] = None,
+        total_limit: Optional[int] = None,
+        headless: bool = True
+    ):
+        """Initializes the ZitoScraper.
+
+        Args:
+            base_url (str): The base URL for the Zito market's price checker website.
+            browser (str, optional): The browser to use for Selenium automation.
+                Supported values are 'chrome', 'firefox', and 'edge'. Defaults to 'chrome'.
+            per_page_limit (Optional[int], optional): The maximum number of products to scrape per page.
+                If None, there is no per-page limit. Defaults to None.
+            total_limit (Optional[int], optional): The total maximum number of products to scrape across all pages/markets.
+                If None, there is no total limit. Defaults to None.
+            headless (bool, optional): Whether to run the browser in headless mode (no UI). Defaults to True.
+
+        Raises:
+            ValueError: If the base_url is not provided or is invalid.
+        """
         super().__init__(
             base_url=base_url,
             market_name="Zito",

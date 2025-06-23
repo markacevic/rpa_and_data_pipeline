@@ -6,17 +6,33 @@ import os
 from jsonschema import validate, ValidationError
 
 class DataValidator:
-    """
-    Validates the processed DataFrame using a defined JSON schema and
-    generates a detailed validation report.
+    """Validates processed data and generates a quality report.
+
+    This class is responsible for validating a DataFrame of processed product
+    data against a predefined JSON schema. It identifies and logs any
+    schema violations, removes duplicate entries, and generates a detailed
+    JSON report summarizing the validation results.
+
+    Attributes:
+        logger: A configured logger for the class.
+        schema: The JSON schema used for validation.
+        validation_errors: A list to store details of validation failures.
     """
     def __init__(self):
+        """Initializes the DataValidator instance."""
         self.logger = logging.getLogger(self.__class__.__name__)
         self.schema = self._define_schema()
         self.validation_errors = []
 
     def _define_schema(self) -> dict:
-        """Defines the JSON schema for a single valid processed product."""
+        """Defines the JSON schema for a single valid processed product record.
+
+        This schema enforces data types, required fields, and value constraints
+        for each product record to ensure data quality and consistency.
+
+        Returns:
+            dict: A dictionary representing the JSON schema.
+        """
         return {
             "type": "object",
             "properties": {
@@ -40,9 +56,20 @@ class DataValidator:
         }
 
     def validate(self, df: pd.DataFrame, market_name: str) -> pd.DataFrame:
-        """
-        Validates the DataFrame against the schema, logs errors,
-        removes duplicates, and generates a report.
+        """Validates a DataFrame against the schema and removes duplicates.
+
+        This method iterates through each row of the input DataFrame, validates
+        it against the JSON schema, and collects any errors. It then generates
+        a validation report, removes duplicate records, and returns a new
+        DataFrame containing only the valid, unique data.
+
+        Args:
+            df (pd.DataFrame): The DataFrame containing processed product data.
+            market_name (str): The name of the market, used for the report filename.
+
+        Returns:
+            pd.DataFrame: A cleaned DataFrame containing only the records that
+                passed both schema validation and duplicate checks.
         """
         self.logger.info(f"Starting validation for {len(df)} records from '{market_name}'...")
         self.validation_errors = [] # Reset errors for each run
@@ -87,8 +114,17 @@ class DataValidator:
         self.logger.info(f"Validation complete. {final_count} records passed all checks.")
         return validated_df
 
-    def _generate_report(self, original_count: int, market_name: str):
-        """Generates a JSON report summarizing the validation results."""
+    def _generate_report(self, original_count: int, market_name: str) -> None:
+        """Generates and saves a JSON report summarizing validation results.
+
+        The report includes a summary of processed, passed, and failed
+        records, along with a detailed list of all validation errors that
+        occurred.
+
+        Args:
+            original_count (int): The total number of records in the original DataFrame.
+            market_name (str): The name of the market, used for naming the report file.
+        """
         report = {
             "validation_summary": {
                 "total_records_processed": original_count,

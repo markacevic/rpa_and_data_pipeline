@@ -7,7 +7,24 @@ class StokomakScraper(BaseMarketScraper):
     A scraper for the Stokomak supermarket website.
     This class inherits all its scraping logic from the BaseMarketScraper.
     """
-    def __init__(self, base_url: str, browser: str = 'chrome', per_page_limit: Optional[int] = None, total_limit: Optional[int] = None, headless: bool = True):
+    def __init__(
+        self,
+        base_url: str,
+        browser: str = 'chrome',
+        per_page_limit: Optional[int] = None,
+        total_limit: Optional[int] = None,
+        headless: bool = True
+    ):
+        """
+        Initializes the StokomakScraper.
+
+        Args:
+            base_url (str): The base URL for the Stokomak market's price checker website.
+            browser (str, optional): The browser to use for Selenium automation ('chrome', 'firefox', 'edge'). Defaults to 'chrome'.
+            per_page_limit (Optional[int], optional): The maximum number of products to scrape per page. Defaults to None (no limit).
+            total_limit (Optional[int], optional): The total maximum number of products to scrape across all pages/markets. Defaults to None (no limit).
+            headless (bool, optional): Whether to run the browser in headless mode (no UI). Defaults to True.
+        """
         super().__init__(
             base_url=base_url,
             market_name="Stokomak",

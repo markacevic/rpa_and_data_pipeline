@@ -1,3 +1,9 @@
+"""
+Utility functions for the project.
+
+This module contains various helper functions that are used throughout the project.
+"""
+
 from .helpers import (
     setup_logging,
     create_output_dir,

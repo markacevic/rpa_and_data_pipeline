@@ -15,12 +15,24 @@ import pandas as pd
 import os
 
 def setup_logging():
-    """Sets up basic logging for the script."""
+    """Sets up basic logging for the script.
+
+    This function configures the root logger to use the INFO level and a
+    standard format for logging messages.
+    """
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 def main():
-    """Main function to parse arguments and run the specified scraper."""
+    """Parses command-line arguments and runs the specified market scraper.
+
+    This function handles argument parsing, initializes the appropriate scraper
+    based on the provided market, and orchestrates the scraping, processing,
+    and validation workflow.
+
+    Returns:
+        None
+    """
     parser = argparse.ArgumentParser(description="Run a market scraper.")
     parser.add_argument("market", type=str, help="The name of the market to scrape (e.g., 'Vero', 'Tinex').")
     parser.add_argument("--browser", type=str, default="chrome", choices=['edge', 'chrome', 'firefox'], help="The browser to use for scraping.")

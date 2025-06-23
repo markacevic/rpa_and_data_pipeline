@@ -16,18 +16,25 @@ from selenium.webdriver.chrome.options import Options as ChromeOptions
 from selenium.webdriver.edge.options import Options as EdgeOptions
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
 
-# Овие две датотеки треба да бидат во src/utils/
 from src.utils.helpers import handle_selenium_error, random_delay
 
 
 class BaseMarketScraper(ABC):
     """
-    A base class for market scrapers.
-    This version is implemented according to the user's specific instructions:
-    1. Get all market IDs from the initial dropdown.
-    2. Loop through each market ID.
-    3. For each market, loop through pages by incrementing 'page' in the URL.
-    4. Stop when a page shows "Нема артикли".
+    An abstract base class for market scrapers.
+
+    This class provides a common framework and default implementation for scraping
+    product data from supermarket websites. It handles WebDriver setup,
+    data saving, and basic error handling.
+
+    The default `scrape` method is designed for standard sites that use a dropdown
+    to select a store location and paginate through product listings. It will:
+    1. Find all store locations from the main page.
+    2. For each location, scrape products page by page.
+    3. Stop when a page with no products is detected.
+
+    For markets with unique website structures (e.g., Vero), subclasses should
+    override the `scrape` method to implement custom logic.
     """
     def __init__(
         self,
@@ -35,9 +42,30 @@ class BaseMarketScraper(ABC):
         market_name: str,
         browser: str = 'chrome',
         headless: bool = True,
-        per_page_limit: Optional[int] = None, # Note: This is less relevant with the new logic
+        per_page_limit: Optional[int] = None, 
         total_limit: Optional[int] = None
     ):
+        """Initializes the BaseMarketScraper.
+
+        This sets up the scraper's configuration, including the target URL,
+        market name, and browser settings. It also initializes the Selenium
+        WebDriver.
+
+        Args:
+            base_url (str): The base URL of the market's price-checking website.
+            market_name (str): The name of the supermarket chain (e.g., 'Vero').
+            browser (str, optional): The browser to use for scraping ('chrome', 'edge', 'firefox').
+                Defaults to 'chrome'.
+            headless (bool, optional): If True, runs the browser without a visible UI.
+                Defaults to True.
+            per_page_limit (Optional[int], optional): An optional limit on the number of pages
+                to scrape per market location. Defaults to None.
+            total_limit (Optional[int], optional): An optional overall limit on the total
+                number of products to scrape across all locations. Defaults to None.
+
+        Raises:
+            ValueError: If an unsupported browser is specified.
+        """
         self.base_url = base_url.split('?')[0] # Get the clean base URL without any params
         self.market_name = market_name
         self.browser = browser.lower()
@@ -79,14 +107,38 @@ class BaseMarketScraper(ABC):
             raise ValueError(f"Unsupported browser: {self.browser}")
 
     def __enter__(self):
+        """_summary_
+
+        Returns:
+            BaseMarketScraper: The scraper instance.
+        """
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """Ensures the WebDriver is closed when exiting the 'with' context.
+
+        This method is automatically called upon exiting a `with` block,
+        which guarantees that the browser is closed and resources are freed,
+        even if errors occur within the block.
+
+        Args:
+            exc_type: The exception type if an exception was raised in the `with` block.
+            exc_val: The exception value if an exception was raised.
+            exc_tb: The traceback object if an exception was raised.
+        """
         self.close()
 
     def _get_market_details(self) -> List[Dict[str, str]]:
         """
-        Step 1: Get all market 'value' attributes and names from the dropdown.
+        Fetches the list of available markets from the website's main page.
+
+        This method navigates to the base URL, locates the market selection
+        dropdown, and extracts the ID and name for each market listed.
+
+        Returns:
+            List[Dict[str, str]]: A list of market details. Each dictionary
+                                  contains an 'id' and a 'name'. Returns an
+                                  empty list on failure.
         """
         self.logger.info("Navigating to the base URL to get market details...")
         self.driver.get(self.base_url)
@@ -110,11 +162,21 @@ class BaseMarketScraper(ABC):
         return markets
 
     def scrape(self) -> List[str]:
-        """
-        Main scraping method.
-        - Loops through markets and their pages.
-        - Passes the per_page_limit to the extraction function.
-        - Obeys the total_limit to stop all operations.
+        """Executes the main scraping process for the configured markets.
+
+        This method orchestrates the entire scraping workflow. It begins by
+        fetching a list of all available market locations from the website.
+        It then iterates through each market, paginating through its product
+        listings and extracting data from each page.
+
+        The scraping process adheres to the `total_limit` defined during
+        the scraper's initialization, stopping all operations once the
+        limit is reached. The `per_page_limit` is also respected during
+        the data extraction from individual pages.
+
+        Returns:
+            List[str]: A list of file paths where the raw scraped data has been
+                saved. Returns an empty list if no data was scraped or saved.
         """
         self.logger.info(f"Starting scrape for {self.market_name}...")
         all_products: List[Dict[str, Any]] = []
@@ -181,8 +243,7 @@ class BaseMarketScraper(ABC):
                     stop_scraping_total = True
                     break
 
-                # --- НОВ УСЛОВ ЗА ИЗЛЕЗ ---
-                # Ако листата е празна, прекини го циклусот.
+                # If the page products list is empty, it means we've reached the end of the market.
                 if not page_products: # Ова е исто како 'if len(page_products) == 0:'
                     self.logger.info("Страницата не врати продукти, се претпоставува крај.")
                     break
@@ -208,10 +269,23 @@ class BaseMarketScraper(ABC):
         return output_files
 
     def _extract_products_from_page(self, market_id: str, market_name: str, per_page_limit: Optional[int]) -> List[Dict[str, Any]]:
-        """
-        Extracts products row-by-row.
-        - Obeys the total_limit.
-        - Obeys the per_page_limit by stopping after collecting that many items from THIS PAGE.
+        """Extracts all product data from the currently loaded page.
+
+        This method iterates through each row of the product table on the current
+        page, extracting the data for each product. It respects both the
+        per-page and total scraping limits.
+
+        Args:
+            market_id: The ID of the market location being scraped.
+            market_name: The name of the market location being scraped.
+            per_page_limit: The maximum number of products to extract from this
+                page. If None, all products on the page are extracted (up to
+                the total limit).
+
+        Returns:
+            A list of dictionaries, where each dictionary represents a
+            scraped product. Returns an empty list if no products are found
+            or if the total scraping limit has already been reached.
         """
         products: List[Dict[str, Any]] = []
         
@@ -220,14 +294,12 @@ class BaseMarketScraper(ABC):
             return []
 
         try:
-            # --- НОВ ДЕЛ: ПРОВЕРКА ЗА "НЕМА ПОДАТОЦИ" ---
-            # Бараме ќелија (td) која го содржи текстот. find_elements не фрла грешка ако не најде ништо.
+            # Check if the page contains a message indicating no data is available
             no_data_elements = self.driver.find_elements(By.XPATH, "//td[contains(text(), 'Нема податоци за прикажување')]")
             
             if no_data_elements:
-                self.logger.info(f"Пронајдена порака 'Нема податоци'. Крај на собирањето за '{market_name}'.")
-                return []  # Врати None за да му сигнализираш на повикувачкиот циклус дека е крај.
-            # --- КРАЈ НА НОВИОТ ДЕЛ ---
+                self.logger.info(f"No data found for market '{market_name}'. Stopping collection.")
+                return []  
 
             rows = self.driver.find_elements(By.CSS_SELECTOR, 'div.table-responsive .table tbody tr')
             if not rows:
@@ -279,7 +351,15 @@ class BaseMarketScraper(ABC):
         return products
     
     def _save_data(self, data: List[Dict[str, Any]]) -> str:
-        """Saves data to a JSON file and returns the file path."""
+        """Saves scraped data to a JSON file.
+
+        Args:
+            data: A list of dictionaries, where each dictionary represents a
+                scraped product.
+
+        Returns:
+            The file path where the data was saved.
+        """
         filename = f"outputs/{self.market_name.lower()}_raw_data.json"
         os.makedirs(os.path.dirname(filename), exist_ok=True)
         with open(filename, 'w', encoding='utf-8') as f:
@@ -288,18 +368,38 @@ class BaseMarketScraper(ABC):
         return filename
 
     def _handle_error(self, e: Exception, context: str):
-        """Centralized error handler using the generic helper."""
+        """Handles errors that occur during the scraping process.
+
+        Args:
+            e (Exception): The exception that occurred.
+            context (str): The context in which the error occurred.
+        """
         handle_selenium_error(self.driver, self.logger, e, context)
 
     def close(self):
-        """Closes the Selenium WebDriver."""
+        """Closes the Selenium WebDriver.
+
+        This method ensures that the browser is properly closed and its resources
+        are freed. It is automatically called when exiting a `with` block or when
+        the scraper instance is explicitly closed.
+        """
         if hasattr(self, 'driver') and self.driver:
             self.driver.quit()
             self.logger.info("Browser closed.")
 
     def _is_raw_product_valid(self, product: Dict[str, Any]) -> bool:
-        """
-        Performs basic validation on the raw scraped product data.
+        """Performs basic validation on the raw scraped product data.
+
+        This method checks if the product data meets the following criteria:
+        - The product name must not be empty.
+        - The product name must contain at least one letter or number.
+        - The current price must not be empty and must be a positive number.
+
+        Args:
+            product: A dictionary representing a scraped product.
+
+        Returns:
+            bool: True if the product data is valid, False otherwise.
         """
         name = product.get('назив_на_стока-производ', '').strip()
         current_price_str = product.get('продажна_цена', '').strip()

@@ -15,7 +15,24 @@ from selenium.webdriver.support import expected_conditions as EC
 class VeroScraper(BaseMarketScraper):
     """A scraper for the Vero supermarket website."""
 
-    def __init__(self, base_url: str, browser: str = 'chrome', per_page_limit: Optional[int] = None, total_limit: Optional[int] = None, headless: bool = True):
+    def __init__(
+        self,
+        base_url: str,
+        browser: str = 'chrome',
+        per_page_limit: Optional[int] = None,
+        total_limit: Optional[int] = None,
+        headless: bool = True
+    ):
+        """
+        Initializes the VeroScraper.
+
+        Args:
+            base_url (str): The base URL for the Vero market's price checker website.
+            browser (str, optional): The browser to use for Selenium automation ('chrome', 'firefox', 'edge'). Defaults to 'chrome'.
+            per_page_limit (Optional[int], optional): The maximum number of products to scrape per page. Defaults to None (no limit).
+            total_limit (Optional[int], optional): The total maximum number of products to scrape across all pages/markets. Defaults to None (no limit).
+            headless (bool, optional): Whether to run the browser in headless mode (no UI). Defaults to True.
+        """
         super().__init__(
             base_url=base_url,
             market_name="Vero",
@@ -27,9 +44,14 @@ class VeroScraper(BaseMarketScraper):
         self.market_code_to_name = {}
 
     def scrape(self) -> List[str]:
-        """
-        Main orchestration method for the Vero scraper.
-        It finds all market URLs, scrapes each one, and saves the data.
+        """Orchestrates the scraping process for the Vero supermarket.
+
+        This method locates all market URLs, scrapes product data from each market,
+        aggregates the results, and saves the combined data to a file.
+
+        Returns:
+            List[str]: A list containing the path to the saved data file. Returns an empty
+                list if no data was scraped or if an error occurred.
         """
         self.logger.info("Starting Vero scrape process.")
         
@@ -59,9 +81,15 @@ class VeroScraper(BaseMarketScraper):
         return [output_file]
 
     def _get_market_urls(self, retries: int = 3) -> list:
-        """
-        Finds all individual market links on the homepage, handling potential
-        cookie banners and retrying on timeout.
+        """Finds all individual market links on the homepage.
+
+        Handles potential cookie banners and retries on timeout.
+
+        Args:
+            retries (int): Number of times to retry loading the market links if not found.
+
+        Returns:
+            list: A list of URLs (str) for each market found on the homepage.
         """
         self.logger.info("Navigating to the base URL to find market links...")
         self.driver.get(self.base_url)
@@ -146,9 +174,18 @@ class VeroScraper(BaseMarketScraper):
         return []  # Return empty list if all retries fail
 
     def _scrape_products_from_url(self, url: str) -> List[Dict[str, Any]]:
-        """
-        Scrapes all products from a given market page URL and its subsequent pages.
-        This is the implementation for the abstract method in the base class.
+        """Scrape all products from a given market page URL and its subsequent pages.
+
+        This method implements the abstract method from the base class. It navigates through
+        the paginated product listings for a specific market, extracting product data from each
+        page until there are no more products or a product limit is reached.
+
+        Args:
+            url (str): The URL of the first product page for the market.
+
+        Returns:
+            List[Dict[str, Any]]: A list of dictionaries, each representing a product scraped
+                from the market's pages.
         """
         all_products = []
         current_url = url
@@ -187,7 +224,15 @@ class VeroScraper(BaseMarketScraper):
         return all_products
 
     def _navigate_to_page(self, url: str, retries: int = 3) -> bool:
-        """Navigates to a URL and waits for the product table, with retries."""
+        """Navigates to a URL and waits for the product table, with retries.
+
+        Args:
+            url (str): The URL to navigate to.
+            retries (int): Number of times to retry if the page is not found.
+
+        Returns:
+            bool: True if the page was successfully navigated to, False otherwise.
+        """
         for attempt in range(retries):
             try:
                 self.driver.get(url)
@@ -210,7 +255,11 @@ class VeroScraper(BaseMarketScraper):
         return False
 
     def _save_debug_snapshot(self, context_name: str):
-        """Saves a screenshot and the page source for debugging."""
+        """Saves a screenshot and the page source for debugging.
+
+        Args:
+            context_name (str): The name of the context for the snapshot.
+        """
         try:
             # Sanitize context_name to be a valid filename
             safe_context = re.sub(r'[^a-zA-Z0-9_-]', '_', context_name)
@@ -235,8 +284,13 @@ class VeroScraper(BaseMarketScraper):
             self.logger.error(f"Could not save debug snapshot: {ss_e}")
 
     def _is_raw_product_valid(self, product: Dict[str, Any]) -> bool:
-        """
-        Performs basic validation on the raw scraped product data.
+        """Performs basic validation on the raw scraped product data.
+
+        Args:
+            product (Dict[str, Any]): A dictionary representing a scraped product.
+
+        Returns:
+            bool: True if the product data is valid, False otherwise.
         """
         name = product.get('назив_на_стока', '').strip()
         current_price_str = product.get('продажна_цена\n(со_ддв)', '').strip()
@@ -272,7 +326,14 @@ class VeroScraper(BaseMarketScraper):
         return True
 
     def _extract_products_from_page(self, market_code: str) -> List[Dict[str, Any]]:
-        """Extracts all rows from the product table on the current page."""
+        """Extracts all rows from the product table on the current page.
+
+        Args:
+            market_code (str): The code of the market being scraped.
+
+        Returns:
+            List[Dict[str, Any]]: A list of dictionaries, each representing a scraped product.
+        """
         products = []
         try:
             table = self.driver.find_element(By.CSS_SELECTOR, 'table[style*="font-size: 13"]')

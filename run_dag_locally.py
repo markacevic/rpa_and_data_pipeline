@@ -14,24 +14,55 @@ from dags.market_pipelines_dag import (
 )
 
 class MockTaskInstance:
-    """A mock of the Airflow TaskInstance object to simulate XComs."""
+    """A mock of the Google Cloud Composer (Airflow) TaskInstance object to simulate XComs for local testing."""
     def __init__(self):
+        """Initializes the MockTaskInstance.
+
+        This class is used to simulate the Airflow TaskInstance object for local testing.
+        It provides methods to push and pull XComs, which are used to pass data between tasks.
+        """
         self.xcoms = {}
         logging.info("Created MockTaskInstance for local run.")
 
     def xcom_push(self, key, value):
+        """Pushes a value to the XComs dictionary.
+
+        Args:
+            key (str): The key to store the value under.
+            value (Any): The value to store.
+        """
         logging.info(f"[XCOM PUSH] key='{key}', value='{value}'")
         self.xcoms[key] = value
 
     def xcom_pull(self, key, task_ids):
+        """Pulls a value from the XComs dictionary.
+
+        Args:
+            key (str): The key to retrieve the value from.
+            task_ids (str): The task ID to pull the value from.
+
+        Returns:
+            Any: The value retrieved from the XComs dictionary.
+        """
         logging.info(f"[XCOM PULL] key='{key}', task_ids='{task_ids}'")
         # In our new DAG, the key already contains the market name.
         return self.xcoms.get(key)
 
 def run_pipeline_locally(market_name: str, browser: str = 'chrome', headless: bool = False, total_limit: int = None, per_page_limit: int = None):
-    """
-    Runs the main steps of a specific market's Airflow DAG locally.
-    This is useful for debugging the core logic of the tasks.
+    """Runs the main steps of a specific market's Airflow DAG locally.
+
+    This function is useful for debugging the core logic of the tasks by simulating
+    the Airflow pipeline steps outside of the Airflow environment.
+
+    Args:
+        market_name (str): The name of the market to run the pipeline for.
+        browser (str, optional): The browser to use for scraping. Defaults to 'chrome'.
+        headless (bool, optional): Whether to run the browser in headless mode. Defaults to False.
+        total_limit (int, optional): The maximum total number of products to scrape. Defaults to None.
+        per_page_limit (int, optional): The maximum number of products to scrape per page. Defaults to None.
+
+    Returns:
+        None
     """
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
     
